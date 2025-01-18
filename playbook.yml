@@ -1,0 +1,31 @@
+---
+- name: Deploy Erigon Node
+  hosts: erigon_nodes
+  become: yes
+  tasks:
+    - name: Install dependencies
+      apt:
+        name:
+          - git
+          - curl
+          - docker.io
+          - docker-compose
+        state: present
+        update_cache: yes
+
+    - name: Clone Erigon CDK repo
+      git:
+        repo: 'https://github.com/Polygon-Technology/cdk.git'
+        dest: /opt/polygon-cdk
+        version: main
+
+    - name: Copy Erigon Docker Compose file
+      copy:
+        src: erigon-docker-compose.yml
+        dest: /opt/polygon-cdk/erigon-docker-compose.yml
+
+    - name: Start Erigon Node using Docker Compose
+      docker_compose:
+        project_src: /opt/polygon-cdk
+        restarted: yes
+        state: present

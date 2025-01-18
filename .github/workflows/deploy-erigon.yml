@@ -1,0 +1,53 @@
+name: Deploy Erigon Node
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+    - name: Set up Python
+      uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+      with:
+        python-version: '3.x'
+
+    - name: Install Ansible and dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ansible sshpass
+
+    - name: Set up SSH key for remote access
+      run: |
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        mkdir -p ~/.ssh
+        echo "Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null" >> ~/.ssh/config
+
+    - name: Configure Ansible inventory
+      run: |
+        echo "node1 ansible_host=${{ secrets.NODE1_IP }} ansible_user=${{ secrets.SSH_USER }}" >> inventory
+
+    - name: Run Ansible Playbook to deploy Erigon node
+      run: |
+        ansible-playbook -i inventory playbook.yml
+
+  slack-notify:
+    needs:
+      - deploy
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+       - name: Slack notification
+         uses: come25136/workflow-notification-for-slack@main
+         with:
+           repo_token: ${{ secrets.GITHUB_TOKEN }}
+           slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

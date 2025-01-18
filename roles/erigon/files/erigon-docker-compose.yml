@@ -1,0 +1,13 @@
+services:
+  erigon:
+    image: ghcr.io/ledgerwatch/erigon:latest
+    restart: always
+    environment:
+      - NETWORK=polygon
+    ports:
+      - "8545:8545"
+      - "30303:30303"
+    volumes:
+      - erigon_data:/data
+volumes:
+  erigon_data:
